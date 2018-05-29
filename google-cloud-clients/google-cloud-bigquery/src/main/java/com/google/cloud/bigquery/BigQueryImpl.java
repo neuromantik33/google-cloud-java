@@ -40,9 +40,9 @@ import com.google.cloud.bigquery.spi.v2.BigQueryRpc;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
@@ -468,13 +468,15 @@ final class BigQueryImpl extends BaseService<BigQueryOptions> implements BigQuer
     // Using an array of size 1 here to have a mutable boolean variable, which can be modified in
     // an anonymous inner class.
     final boolean[] allInsertIdsSet = {true};
-    List<Rows> rowsPb = Lists.transform(request.getRows(), new Function<RowToInsert, Rows>() {
-      @Override
-      public Rows apply(RowToInsert rowToInsert) {
-        allInsertIdsSet[0] &= rowToInsert.getId() != null;
-        return new Rows().setInsertId(rowToInsert.getId()).setJson(rowToInsert.getContent());
-      }
-    });
+    List<Rows> rowsPb = FluentIterable.from(request.getRows())
+        .transform(new Function<RowToInsert, Rows>() {
+          @Override
+          public Rows apply(RowToInsert rowToInsert) {
+            allInsertIdsSet[0] &= rowToInsert.getId() != null;
+            return new Rows().setInsertId(rowToInsert.getId()).setJson(rowToInsert.getContent());
+          }
+        })
+        .toList();
     requestPb.setRows(rowsPb);
 
     TableDataInsertAllResponse responsePb;
